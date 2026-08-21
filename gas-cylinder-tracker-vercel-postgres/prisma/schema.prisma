@@ -1,0 +1,134 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Cylinder {
+  id             String         @id @default(cuid())
+  cylinderCode   String         @unique
+  currentStatus  String         @default("FULL")
+  isOn           Boolean        @default(false)
+  currentSide    String?
+  lastTurnedOnAt DateTime?
+  positionId     String?        @unique
+  position       Position?      @relation(fields: [positionId], references: [id], onDelete: SetNull)
+  usageSessions  UsageSession[]
+  events         CylinderEvent[]
+  replacementItems SupplierReplacementItem[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([currentStatus])
+  @@index([isOn])
+}
+
+model Position {
+  id           String          @id @default(cuid())
+  positionName String          @unique
+  area         String
+  side         String?
+  sortOrder    Int
+  active       Boolean         @default(true)
+  cylinder     Cylinder?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@unique([area, sortOrder])
+}
+
+model Operator {
+  id           String          @id @default(cuid())
+  name         String          @unique
+  role         String          @default("OPERATOR")
+  active       Boolean         @default(true)
+  onSessions   UsageSession[]  @relation("OnOperator")
+  offSessions  UsageSession[]  @relation("OffOperator")
+  events       CylinderEvent[]
+  requestedReplacements SupplierReplacement[] @relation("RequestedBy")
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+}
+
+model UsageSession {
+  id            String    @id @default(cuid())
+  cylinderId    String
+  cylinder      Cylinder  @relation(fields: [cylinderId], references: [id], onDelete: Restrict)
+  side          String
+  turnedOnAt    DateTime
+  turnedOnById  String
+  turnedOnBy    Operator  @relation("OnOperator", fields: [turnedOnById], references: [id], onDelete: Restrict)
+  turnedOffAt   DateTime?
+  turnedOffById String?
+  turnedOffBy   Operator? @relation("OffOperator", fields: [turnedOffById], references: [id], onDelete: Restrict)
+  durationSeconds Int?
+  finalStatus   String?
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([cylinderId, turnedOnAt])
+  @@index([turnedOnById])
+  @@index([turnedOffById])
+}
+
+model CylinderEvent {
+  id              String    @id @default(cuid())
+  cylinderId      String?
+  cylinder        Cylinder? @relation(fields: [cylinderId], references: [id], onDelete: SetNull)
+  eventType       String
+  operatorId      String?
+  operator        Operator? @relation(fields: [operatorId], references: [id], onDelete: SetNull)
+  eventTime       DateTime
+  oldStatus       String?
+  newStatus       String?
+  oldPositionId   String?
+  oldPositionName String?
+  newPositionId   String?
+  newPositionName String?
+  side            String?
+  notes           String?
+  changeData      String?
+  relatedEntityId String?
+  createdAt       DateTime  @default(now())
+
+  @@index([cylinderId, eventTime])
+  @@index([eventType, eventTime])
+}
+
+model SupplierReplacement {
+  id            String   @id @default(cuid())
+  requestDate   DateTime
+  deliveryDate  DateTime?
+  supplier      String
+  requestedById String
+  requestedBy   Operator @relation("RequestedBy", fields: [requestedById], references: [id], onDelete: Restrict)
+  status        String   @default("REQUESTED")
+  notes         String?
+  items         SupplierReplacementItem[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([status, requestDate])
+}
+
+model SupplierReplacementItem {
+  id            String @id @default(cuid())
+  replacementId String
+  replacement   SupplierReplacement @relation(fields: [replacementId], references: [id], onDelete: Cascade)
+  cylinderId    String
+  cylinder      Cylinder @relation(fields: [cylinderId], references: [id], onDelete: Restrict)
+  previousStatus String
+  completedAt   DateTime?
+
+  @@unique([replacementId, cylinderId])
+}
+
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
