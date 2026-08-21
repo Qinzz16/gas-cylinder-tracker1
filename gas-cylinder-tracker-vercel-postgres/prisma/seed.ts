@@ -20,9 +20,7 @@ async function main() {
   }
 
   await prisma.position.updateMany({
-    where: {
-      NOT: { id: { in: createdPositions.map((position) => position.id) } },
-    },
+    where: { NOT: { id: { in: createdPositions.map((position) => position.id) } } },
     data: { active: false },
   });
 
@@ -35,10 +33,23 @@ async function main() {
     await prisma.operator.upsert({ where: { name: operator.name }, update: operator, create: operator });
   }
 
-  await prisma.cylinder.updateMany({
+  const dashboard = await prisma.operator.findUniqueOrThrow({ where: { name: "Dashboard" } });
+  const retired = await prisma.cylinder.findMany({
     where: { cylinderCode: { in: ["G05", "G06", "G07", "G08"] } },
-    data: { positionId: null, isOn: false, currentSide: null },
   });
+  const retiredIds = retired.map((cylinder) => cylinder.id);
+  const retiredAt = new Date();
+
+  if (retiredIds.length) {
+    await prisma.usageSession.updateMany({
+      where: { cylinderId: { in: retiredIds }, turnedOffAt: null },
+      data: { turnedOffAt: retiredAt, turnedOffById: dashboard.id, finalStatus: "STANDBY" },
+    });
+    await prisma.cylinder.updateMany({
+      where: { id: { in: retiredIds } },
+      data: { positionId: null, isOn: false, currentSide: null, currentStatus: "STANDBY" },
+    });
+  }
 
   for (let index = 0; index < 4; index++) {
     const code = `G${String(index + 1).padStart(2, "0")}`;
