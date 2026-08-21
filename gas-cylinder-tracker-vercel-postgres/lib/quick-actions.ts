@@ -93,7 +93,7 @@ export async function quickTurnOff(form: FormData) {
       if (!session) throw new Error("No open usage session was found.");
 
       const durationSeconds = calculateDurationSeconds(session.turnedOnAt, eventTime);
-      const nextStatus = cylinder.currentStatus === "ALMOST_EMPTY" ? "ALMOST_EMPTY" : "STANDBY";
+      const nextStatus = "EMPTY";
 
       await tx.usageSession.update({
         where: { id: session.id },
@@ -122,7 +122,7 @@ export async function quickTurnOff(form: FormData) {
           newPositionId: cylinder.positionId,
           newPositionName: cylinder.position?.positionName,
           notes: "One-click dashboard action",
-          changeData: JSON.stringify({ durationSeconds, condition: "AUTO_STANDBY" }),
+          changeData: JSON.stringify({ durationSeconds, condition: "AUTO_EMPTY" }),
         },
       });
     });
