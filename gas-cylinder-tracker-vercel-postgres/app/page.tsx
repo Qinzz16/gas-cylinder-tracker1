@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlertTriangle, ArrowRightLeft, Power, Truck } from "lucide-react";
+import { ArrowRightLeft, Truck } from "lucide-react";
 import { CylinderCard } from "@/components/CylinderCard";
 import { Notice } from "@/components/Notice";
 import { prisma } from "@/lib/prisma";
@@ -25,19 +25,18 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   const bottom = positions.filter((p) => p.area === "BOTTOM");
 
   return <>
-    <div className="page-head"><div><div className="kicker">Live overview</div><h2>Gas cylinder status</h2><p>Physical cylinders stay traceable as they rotate between working and reserve positions.</p></div><Link href="/record?mode=on" className="btn btn-on"><Power size={18}/> Turn ON</Link></div>
+    <div className="page-head"><div><div className="kicker">Live overview</div><h2>Gas cylinder status</h2><p>Four simple positions. Turn gas ON or OFF directly from each cylinder card.</p></div></div>
     <Notice searchParams={params}/>
-    {emptyBottom === 4 && <div className="notice alert"><AlertTriangle size={17} style={{verticalAlign:"middle", marginRight:7}}/>4 empty cylinders ready for supplier replacement. <Link href="/supplier"><u>Create request</u></Link></div>}
+    {bottom.length > 0 && emptyBottom === bottom.length && <div className="notice alert">All bottom cylinders are empty and ready for supplier replacement. <Link href="/supplier"><u>Create request</u></Link></div>}
     <div className="grid stats">
       <div className="stat"><strong>{active}</strong><span>Currently ON</span></div>
+      <div className="stat"><strong>{cylinders.length - active}</strong><span>Currently OFF</span></div>
       <div className="stat"><strong>{almost}</strong><span>Almost empty</span></div>
-      <div className="stat"><strong>{fullReserve}</strong><span>Full reserves</span></div>
-      <div className="stat"><strong>{emptyBottom}</strong><span>Empty below</span></div>
-      <div className="stat"><strong>{8 - active}</strong><span>Currently OFF</span></div>
+      <div className="stat"><strong>{fullReserve}</strong><span>Full bottom</span></div>
     </div>
-    <div className="section-head"><div><div className="kicker">Active supply zone</div><h3>Upper / Working</h3></div><span>LEFT and RIGHT positions</span></div>
+    <div className="section-head"><div><div className="kicker">Upper</div><h3>Upper Left / Upper Right</h3></div><span>Direct gas control</span></div>
     <div className="grid cylinder-grid">{upper.map((position) => position.cylinder ? <CylinderCard key={position.id} cylinder={position.cylinder}/> : <div className="cylinder-card empty" key={position.id}>Empty position<br/>{position.positionName}</div>)}</div>
-    <div className="section-head"><div><div className="kicker">Rotation stock</div><h3>Bottom / Reserve</h3></div><Link href="/swap" className="btn btn-soft"><ArrowRightLeft size={16}/> Swap</Link></div>
+    <div className="section-head"><div><div className="kicker">Bottom</div><h3>Bottom Left / Bottom Right</h3></div><Link href="/swap" className="btn btn-soft"><ArrowRightLeft size={16}/> Swap</Link></div>
     <div className="grid cylinder-grid">{bottom.map((position) => position.cylinder ? <CylinderCard key={position.id} cylinder={position.cylinder}/> : <div className="cylinder-card empty" key={position.id}>Empty position<br/>{position.positionName}</div>)}</div>
     {emptyBottom > 0 && <div style={{marginTop:18}}><Link href="/supplier" className="btn btn-primary"><Truck size={17}/> Supplier Replacement</Link></div>}
   </>;
