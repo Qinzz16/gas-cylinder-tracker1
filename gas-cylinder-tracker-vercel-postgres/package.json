@@ -12,7 +12,7 @@
     "test": "vitest run",
     "postinstall": "prisma generate",
     "db:migrate": "prisma migrate deploy",
-    "vercel-build": "prisma generate && prisma migrate deploy && next build"
+    "vercel-build": "prisma generate && prisma migrate deploy && npm run db:seed && next build"
   },
   "dependencies": {
     "@prisma/client": "^6.14.0",
